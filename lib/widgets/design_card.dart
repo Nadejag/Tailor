@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../models/design_model.dart';
 import 'app_network_image.dart';
@@ -22,12 +23,11 @@ class DesignCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final cs = Theme.of(context).colorScheme;
 
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(14),
-      elevation: 0,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
@@ -35,101 +35,120 @@ class DesignCard extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: Colors.grey[200]!),
+            color: Colors.white,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.07),
-                blurRadius: 14,
-                offset: Offset(0, 8),
+                color: Colors.black.withValues(alpha: 0.06),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
             ],
-            color: Colors.white,
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // ── Image ────────────────────────────────────────────────
                 Expanded(
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      AppNetworkImage(
-                        imageUrl: design.imageUrl,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
+                      Hero(
+                        tag: design.id,
+                        child: design.imageUrl.startsWith('/')
+                            ? Image.file(File(design.imageUrl),
+                                width: double.infinity, fit: BoxFit.cover)
+                            : AppNetworkImage(
+                                imageUrl: design.imageUrl,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                              ),
                       ),
+                      // subtle bottom gradient
+                      Positioned.fill(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.transparent,
+                                Colors.black.withValues(alpha: 0.22),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      // category pill
                       Positioned(
-                        top: 8,
-                        left: 8,
+                        top: 7,
+                        left: 7,
                         child: _Pill(
                           label: design.category,
-                          color: Colors.black.withValues(alpha: 0.58),
+                          color: Colors.black.withValues(alpha: 0.52),
                           textColor: Colors.white,
                         ),
                       ),
+                      // wardrobe action button
                       if (onAddToWardrobe != null)
                         Positioned(
-                          right: 8,
-                          top: 8,
+                          top: 7,
+                          right: 7,
                           child: _CircleAction(
                             icon: isInWardrobe ? Icons.check : Icons.add,
                             tooltip: isInWardrobe
                                 ? 'Already in wardrobe'
                                 : 'Add to wardrobe',
-                            color: isInWardrobe
-                                ? Colors.green
-                                : colorScheme.primary,
+                            color:
+                                isInWardrobe ? Colors.green : cs.primary,
                             onPressed: onAddToWardrobe!,
                           ),
                         ),
                     ],
                   ),
                 ),
+
+                // ── Info ─────────────────────────────────────────────────
                 Padding(
-                  padding: EdgeInsets.all(12),
+                  padding: const EdgeInsets.fromLTRB(10, 8, 10, 9),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         design.name,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        style: const TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.w700),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      SizedBox(height: 6),
+                      const SizedBox(height: 4),
                       Row(
                         children: [
                           Expanded(
                             child: Text(
                               'Rs. ${design.price.toStringAsFixed(0)}',
                               style: TextStyle(
-                                fontSize: 14,
+                                fontSize: 13,
                                 fontWeight: FontWeight.w800,
-                                color: colorScheme.primary,
+                                color: cs.primary,
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          if (onEdit != null || onDelete != null) ...[
-                            if (onEdit != null)
-                              _MiniAction(
-                                icon: Icons.edit_outlined,
-                                tooltip: 'Edit',
-                                onPressed: onEdit!,
-                              ),
-                            if (onDelete != null) ...[
-                              SizedBox(width: 6),
-                              _MiniAction(
-                                icon: Icons.delete_outline,
-                                tooltip: 'Delete',
-                                color: Colors.red,
-                                onPressed: onDelete!,
-                              ),
-                            ],
+                          if (onEdit != null)
+                            _MiniAction(
+                              icon: Icons.edit_outlined,
+                              tooltip: 'Edit',
+                              onPressed: onEdit!,
+                            ),
+                          if (onDelete != null) ...[
+                            const SizedBox(width: 4),
+                            _MiniAction(
+                              icon: Icons.delete_outline,
+                              tooltip: 'Delete',
+                              color: Colors.red,
+                              onPressed: onDelete!,
+                            ),
                           ],
                         ],
                       ),
@@ -159,7 +178,7 @@ class _Pill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(999),
@@ -167,10 +186,7 @@ class _Pill extends StatelessWidget {
       child: Text(
         label,
         style: TextStyle(
-          color: textColor,
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-        ),
+            color: textColor, fontSize: 10, fontWeight: FontWeight.w700),
       ),
     );
   }
@@ -195,14 +211,14 @@ class _CircleAction extends StatelessWidget {
       message: tooltip,
       child: Material(
         color: color,
-        shape: CircleBorder(),
+        shape: const CircleBorder(),
         child: InkWell(
           onTap: onPressed,
-          customBorder: CircleBorder(),
+          customBorder: const CircleBorder(),
           child: SizedBox(
-            width: 36,
-            height: 36,
-            child: Icon(icon, size: 20, color: Colors.white),
+            width: 30,
+            height: 30,
+            child: Icon(icon, size: 16, color: Colors.white),
           ),
         ),
       ),
@@ -225,20 +241,19 @@ class _MiniAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveColor = color ?? Theme.of(context).colorScheme.primary;
-
+    final c = color ?? Theme.of(context).colorScheme.primary;
     return Tooltip(
       message: tooltip,
       child: Material(
-        color: effectiveColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(9),
+        color: c.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
         child: InkWell(
           onTap: onPressed,
-          borderRadius: BorderRadius.circular(9),
+          borderRadius: BorderRadius.circular(8),
           child: SizedBox(
-            width: 34,
-            height: 32,
-            child: Icon(icon, size: 17, color: effectiveColor),
+            width: 30,
+            height: 28,
+            child: Icon(icon, size: 15, color: c),
           ),
         ),
       ),

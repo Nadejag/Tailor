@@ -5,6 +5,7 @@ import '../../utils/responsive.dart';
 import '../../viewmodels/wardrobe_viewmodel.dart';
 import '../../widgets/app_network_image.dart';
 import '../../widgets/custom_button.dart';
+import '../wardrobe/wardrobe_view.dart';
 
 class DesignDetailView extends StatelessWidget {
   final Design design;
@@ -13,6 +14,12 @@ class DesignDetailView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final wardrobeViewModel = context.watch<WardrobeViewModel>();
+    final isInWardrobe = wardrobeViewModel.isInWardrobe(design.id);
+    final statusLabel = design.status.isNotEmpty
+        ? '${design.status[0].toUpperCase()}${design.status.substring(1)}'
+        : 'Ready';
     final imageHeight = MediaQuery.sizeOf(context).height * 0.34;
 
     return Scaffold(
@@ -26,11 +33,74 @@ class DesignDetailView extends StatelessWidget {
               width: double.infinity,
               constraints: BoxConstraints(minHeight: 220, maxHeight: 340),
               height: imageHeight,
-              child: AppNetworkImage(
-                imageUrl: design.imageUrl,
-                width: double.infinity,
-                height: imageHeight,
-                fit: BoxFit.cover,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Hero(
+                    tag: design.id,
+                    child: AppNetworkImage(
+                      imageUrl: design.imageUrl,
+                      width: double.infinity,
+                      height: imageHeight,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withValues(alpha: 0.18),
+                          Colors.transparent,
+                          Colors.black.withValues(alpha: 0.18),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 16,
+                    left: 16,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.88),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(
+                        design.category,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 16,
+                    right: 16,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.34),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(
+                        statusLabel,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             // Design Details
@@ -70,7 +140,7 @@ class DesignDetailView extends StatelessWidget {
                               child: Text(
                                 design.category,
                                 style: TextStyle(
-                                  color: Theme.of(context).colorScheme.primary,
+                                  color: colorScheme.primary,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -109,8 +179,24 @@ class DesignDetailView extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w700,
-                      color: Colors.deepPurple,
+                      color: colorScheme.primary,
                     ),
+                  ),
+                  SizedBox(height: 16),
+                  Row(
+                    children: [
+                      _buildDetailBadge(
+                        context,
+                        icon: Icons.timer_outlined,
+                        label: '2-3 days',
+                      ),
+                      SizedBox(width: 10),
+                      _buildDetailBadge(
+                        context,
+                        icon: Icons.star_border,
+                        label: 'Recommended',
+                      ),
+                    ],
                   ),
                   SizedBox(height: 24),
                   // Description
@@ -189,7 +275,7 @@ class DesignDetailView extends StatelessWidget {
                 child: OutlinedButton(
                   onPressed: () => Navigator.pop(context),
                   style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: Colors.deepPurple),
+                    side: BorderSide(color: colorScheme.primary),
                     padding: EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -198,7 +284,7 @@ class DesignDetailView extends StatelessWidget {
                   child: Text(
                     'Back',
                     style: TextStyle(
-                      color: Colors.deepPurple,
+                      color: colorScheme.primary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -207,9 +293,19 @@ class DesignDetailView extends StatelessWidget {
               SizedBox(width: 12),
               Expanded(
                 child: CustomButton(
-                  text: 'Add to Wardrobe',
+                  text: isInWardrobe ? 'View Wardrobe' : 'Add to Wardrobe',
                   icon: Icons.checkroom_outlined,
+                  backgroundColor: isInWardrobe
+                      ? colorScheme.secondary
+                      : null,
                   onPressed: () async {
+                    if (isInWardrobe) {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => WardrobeView()),
+                      );
+                      return;
+                    }
+
                     final messenger = ScaffoldMessenger.of(context);
                     final navigator = Navigator.of(context);
                     final added = await context
@@ -226,13 +322,44 @@ class DesignDetailView extends StatelessWidget {
                         backgroundColor: added ? Colors.green : Colors.orange,
                       ),
                     );
-                    if (added) navigator.pop();
+                    if (added && navigator.mounted) navigator.pop();
                   },
                 ),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildDetailBadge(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: colorScheme.outlineVariant),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: colorScheme.primary),
+          SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: colorScheme.onSurface,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }

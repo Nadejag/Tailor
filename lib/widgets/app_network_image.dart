@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'shimmer.dart';
 
@@ -19,24 +20,28 @@ class AppNetworkImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final child = Image.network(
-      imageUrl,
-      width: width,
-      height: height,
-      fit: fit,
-      loadingBuilder: (context, child, loadingProgress) {
-        if (loadingProgress == null) return child;
+    final Widget img = imageUrl.startsWith('/')
+        ? Image.file(
+            File(imageUrl),
+            width: width,
+            height: height,
+            fit: fit,
+            errorBuilder: (context, error, stackTrace) =>
+                _ImagePlaceholder(width: width, height: height),
+          )
+        : Image.network(
+            imageUrl,
+            width: width,
+            height: height,
+            fit: fit,
+            loadingBuilder: (context, child, progress) =>
+                progress == null ? child : _ImagePlaceholder(width: width, height: height),
+            errorBuilder: (context, error, stackTrace) =>
+                _ImagePlaceholder(width: width, height: height),
+          );
 
-        return _ImagePlaceholder(width: width, height: height);
-      },
-      errorBuilder: (context, error, stackTrace) {
-        return _ImagePlaceholder(width: width, height: height);
-      },
-    );
-
-    if (borderRadius == null) return child;
-
-    return ClipRRect(borderRadius: borderRadius!, child: child);
+    if (borderRadius == null) return img;
+    return ClipRRect(borderRadius: borderRadius!, child: img);
   }
 }
 
@@ -48,8 +53,7 @@ class _ImagePlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
+    final cs = Theme.of(context).colorScheme;
     return AppShimmer(
       child: Container(
         width: width,
@@ -59,8 +63,8 @@ class _ImagePlaceholder extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              colorScheme.primary.withValues(alpha: 0.14),
-              colorScheme.secondary.withValues(alpha: 0.12),
+              cs.primary.withValues(alpha: 0.14),
+              cs.secondary.withValues(alpha: 0.12),
               Colors.white,
             ],
           ),
@@ -69,7 +73,7 @@ class _ImagePlaceholder extends StatelessWidget {
           child: Icon(
             Icons.checkroom_outlined,
             size: 42,
-            color: colorScheme.primary.withValues(alpha: 0.55),
+            color: cs.primary.withValues(alpha: 0.55),
           ),
         ),
       ),

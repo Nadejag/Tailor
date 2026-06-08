@@ -5,6 +5,7 @@ import 'viewmodels/design_viewmodel.dart';
 import 'viewmodels/wardrobe_viewmodel.dart';
 import 'viewmodels/measurement_viewmodel.dart';
 import 'viewmodels/payment_viewmodel.dart';
+import 'viewmodels/order_viewmodel.dart';
 import 'views/auth/login_view.dart';
 import 'views/main_home_view.dart';
 
@@ -24,28 +25,29 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (context) => WardrobeViewModel()),
         ChangeNotifierProvider(create: (context) => MeasurementViewModel()),
         ChangeNotifierProvider(create: (context) => PaymentViewModel()),
+        ChangeNotifierProvider(create: (context) => OrderViewModel()),
       ],
       child: MaterialApp(
-        debugShowCheckedModeBanner: false ,
+        debugShowCheckedModeBanner: false,
         title: 'Tailor App',
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.deepPurple,
-            primary: Colors.deepPurple,
-            secondary: Colors.teal,
-            tertiary: Colors.amber,
-            surface: const Color(0xFFF7F7FA),
+            seedColor: const Color(0xFF006D77),
+            primary: const Color(0xFF006D77),
+            secondary: const Color(0xFF7C3AED),
+            tertiary: const Color(0xFFE76F51),
+            surface: const Color(0xFFF6F8F7),
           ),
           useMaterial3: true,
-          scaffoldBackgroundColor: const Color(0xFFF7F7FA),
+          scaffoldBackgroundColor: const Color(0xFFF6F8F7),
           appBarTheme: const AppBarTheme(
             centerTitle: false,
             elevation: 0,
             scrolledUnderElevation: 0,
-            backgroundColor: Color(0xFFF7F7FA),
-            foregroundColor: Color(0xFF1D1B20),
+            backgroundColor: Color(0xFFF6F8F7),
+            foregroundColor: Color(0xFF182322),
             titleTextStyle: TextStyle(
-              color: Color(0xFF1D1B20),
+              color: Color(0xFF182322),
               fontSize: 20,
               fontWeight: FontWeight.w700,
             ),
@@ -55,15 +57,15 @@ class MyApp extends StatelessWidget {
             fillColor: Colors.white,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Color(0xFFE4E1EC)),
+              borderSide: BorderSide(color: Color(0xFFDDE7E4)),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Color(0xFFE4E1EC)),
+              borderSide: BorderSide(color: Color(0xFFDDE7E4)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.deepPurple, width: 1.5),
+              borderSide: BorderSide(color: Color(0xFF006D77), width: 1.5),
             ),
             contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           ),
@@ -72,7 +74,7 @@ class MyApp extends StatelessWidget {
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: Color(0xFFE9E5F0)),
+              side: BorderSide(color: Color(0xFFDDE7E4)),
             ),
           ),
           filledButtonTheme: FilledButtonThemeData(
@@ -91,7 +93,7 @@ class MyApp extends StatelessWidget {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              side: BorderSide(color: Color(0xFFD5CDE2)),
+              side: BorderSide(color: Color(0xFFBFD5D1)),
               textStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
             ),
           ),

@@ -27,6 +27,11 @@ class _PaymentViewState extends State<PaymentView> {
       appBar: AppBar(title: Text('Payments')),
       body: Consumer<PaymentViewModel>(
         builder: (context, viewModel, child) {
+          final progress =
+              viewModel.payment == null || viewModel.payment!.totalAmount == 0
+              ? 0.0
+              : viewModel.payment!.paidAmount / viewModel.payment!.totalAmount;
+
           return SingleChildScrollView(
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             child: ResponsiveCenter(
@@ -35,6 +40,8 @@ class _PaymentViewState extends State<PaymentView> {
                 children: [
                   // Payment Summary Cards
                   if (viewModel.payment != null) ...[
+                    _buildPaymentHero(context, viewModel, progress),
+                    SizedBox(height: 18),
                     LayoutBuilder(
                       builder: (context, constraints) {
                         final gap = AppSpacing.cardGap(context);
@@ -51,7 +58,7 @@ class _PaymentViewState extends State<PaymentView> {
                               child: _buildSummaryCard(
                                 'Total Orders',
                                 '${viewModel.totalOrders}',
-                                Colors.teal,
+                                Theme.of(context).colorScheme.primary,
                                 Icons.inventory_2_outlined,
                               ),
                             ),
@@ -60,7 +67,7 @@ class _PaymentViewState extends State<PaymentView> {
                               child: _buildSummaryCard(
                                 'Total Amount',
                                 'Rs. ${viewModel.payment!.totalAmount.toStringAsFixed(2)}',
-                                Colors.blue,
+                                Theme.of(context).colorScheme.secondary,
                                 Icons.shopping_bag_outlined,
                               ),
                             ),
@@ -78,7 +85,7 @@ class _PaymentViewState extends State<PaymentView> {
                               child: _buildSummaryCard(
                                 'Remaining',
                                 'Rs. ${viewModel.payment!.remainingAmount.toStringAsFixed(2)}',
-                                Colors.orange,
+                                Theme.of(context).colorScheme.tertiary,
                                 Icons.pending_actions_outlined,
                               ),
                             ),
@@ -91,8 +98,10 @@ class _PaymentViewState extends State<PaymentView> {
                       padding: EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey[200]!),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.outlineVariant,
+                        ),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -109,9 +118,7 @@ class _PaymentViewState extends State<PaymentView> {
                             borderRadius: BorderRadius.circular(12),
                             child: LinearProgressIndicator(
                               minHeight: 12,
-                              value:
-                                  viewModel.payment!.paidAmount /
-                                  viewModel.payment!.totalAmount,
+                              value: progress.clamp(0, 1),
                               backgroundColor: Colors.grey[300],
                               valueColor: AlwaysStoppedAnimation<Color>(
                                 Colors.green,
@@ -125,7 +132,7 @@ class _PaymentViewState extends State<PaymentView> {
                             alignment: WrapAlignment.spaceBetween,
                             children: [
                               Text(
-                                '${((viewModel.payment!.paidAmount / viewModel.payment!.totalAmount) * 100).toStringAsFixed(1)}% Paid',
+                                '${(progress * 100).toStringAsFixed(1)}% Paid',
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
@@ -209,6 +216,75 @@ class _PaymentViewState extends State<PaymentView> {
     );
   }
 
+  Widget _buildPaymentHero(
+    BuildContext context,
+    PaymentViewModel viewModel,
+    double progress,
+  ) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.secondary,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.secondary.withValues(alpha: 0.16),
+            blurRadius: 22,
+            offset: Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Payment overview',
+                    style: TextStyle(
+                      color: colorScheme.onSecondary,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                Icon(Icons.receipt_long, color: colorScheme.onSecondary),
+              ],
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Track total orders, paid amount, remaining balance, and every recorded payment.',
+              style: TextStyle(
+                color: colorScheme.onSecondary.withValues(alpha: 0.8),
+                height: 1.4,
+              ),
+            ),
+            SizedBox(height: 18),
+            Text(
+              'Rs. ${viewModel.payment!.remainingAmount.toStringAsFixed(0)}',
+              style: TextStyle(
+                color: colorScheme.onSecondary,
+                fontSize: 30,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            Text(
+              'remaining balance',
+              style: TextStyle(
+                color: colorScheme.onSecondary.withValues(alpha: 0.76),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildSummaryCard(
     String label,
     String amount,
@@ -218,9 +294,16 @@ class _PaymentViewState extends State<PaymentView> {
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.22), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.08),
+            blurRadius: 16,
+            offset: Offset(0, 7),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

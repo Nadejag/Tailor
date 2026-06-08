@@ -27,7 +27,9 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
-    expect(find.text('Create Account'), findsWidgets);
-    expect(find.text('Select Role'), findsOneWidget);
+    expect(find.text('Create your customer account'), findsOneWidget);
+    expect(find.text('Account details'), findsOneWidget);
+    expect(find.text('Customer'), findsOneWidget);
+    expect(find.text('Select Role'), findsNothing);
   });
 }

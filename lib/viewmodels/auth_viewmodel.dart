@@ -15,7 +15,7 @@ class AuthViewModel extends BaseViewModel {
     try {
       // Simulating API call
       await Future.delayed(Duration(seconds: 2));
-      
+
       _currentUser = User(
         id: '1',
         name: 'John Doe',
@@ -36,18 +36,18 @@ class AuthViewModel extends BaseViewModel {
     }
   }
 
-  Future<bool> signup(String name, String email, String password, String role) async {
+  Future<bool> signup(String name, String email, String password) async {
     setBusy(true);
     try {
       // Simulating API call
       await Future.delayed(Duration(seconds: 2));
-      
+
       _currentUser = User(
         id: '1',
         name: name,
         email: email,
         password: password,
-        role: role,
+        role: 'customer',
       );
       _isLoggedIn = true;
       _errorMessage = '';

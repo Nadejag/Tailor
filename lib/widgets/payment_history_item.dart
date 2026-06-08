@@ -8,6 +8,7 @@ class PaymentHistoryItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final date =
         '${payment.createdAt.day}/${payment.createdAt.month}/${payment.createdAt.year}';
 
@@ -16,8 +17,15 @@ class PaymentHistoryItem extends StatelessWidget {
       padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey[300]!, width: 1),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: colorScheme.outlineVariant, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.shadow.withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: Offset(0, 5),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -25,15 +33,15 @@ class PaymentHistoryItem extends StatelessWidget {
             width: 50,
             height: 50,
             decoration: BoxDecoration(
-              color: Colors.deepPurple.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
+              color: colorScheme.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Center(
               child: Icon(
                 payment.method.toLowerCase() == 'cash'
                     ? Icons.money
                     : Icons.credit_card,
-                color: Colors.deepPurple,
+                color: colorScheme.primary,
               ),
             ),
           ),

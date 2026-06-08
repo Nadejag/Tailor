@@ -38,8 +38,14 @@ dependencies:
   # State management for MVVM
   provider: ^6.1.2
 
+  # Persist simple local settings
+  shared_preferences: ^2.2.0
+
   # HTTP requests
   http: ^1.2.1
+
+  # Image picker from gallery
+  image_picker: ^1.1.2
 
 dev_dependencies:
   flutter_test:
