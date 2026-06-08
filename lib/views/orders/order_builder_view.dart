@@ -20,38 +20,35 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
     final padding = AppSpacing.pagePadding(context);
 
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(kToolbarHeight),
-        child: Consumer<OrderViewModel>(
-          builder: (context, vm, child) {
-            return AppBar(
-              title: const Text('Orders & Package'),
-              actions: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                  child: FilledButton(
-                    onPressed: () => _showPackagePicker(vm),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      appBar: AppBar(
+        title: const Text('Orders & Package'),
+        actions: [
+          Consumer<OrderViewModel>(
+            builder: (context, viewModel, child) {
+              final spec = _presentationFor(viewModel.package.id);
+              return Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: FilledButton.icon(
+                  onPressed: () => _showPackageSelector(viewModel),
+                  icon: const Icon(Icons.workspace_premium_outlined, size: 17),
+                  label: Text(viewModel.package.name),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: spec.accent,
+                    foregroundColor: spec.onAccent,
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
                     ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.view_in_ar, size: 16),
-                        const SizedBox(width: 8),
-                        Text('Package: ${vm.package.name}'),
-                        const SizedBox(width: 8),
-                        const Icon(Icons.keyboard_arrow_down, size: 18),
-                      ],
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(999),
                     ),
                   ),
                 ),
-              ],
-            );
-          },
-        ),
+              );
+            },
+          ),
+        ],
       ),
       body: Consumer<OrderViewModel>(
         builder: (context, viewModel, child) {
@@ -72,8 +69,8 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
                     child: _selectedTab == 0
                         ? _buildPackageTab(context, viewModel)
                         : _selectedTab == 1
-                            ? _buildOrderTab(context, viewModel)
-                            : _buildPrintTab(context, viewModel),
+                        ? _buildOrderTab(context, viewModel)
+                        : _buildPrintTab(context, viewModel),
                   ),
                 ),
               ],
@@ -91,8 +88,15 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: colorScheme.outlineVariant),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.shadow.withValues(alpha: 0.07),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -136,10 +140,17 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
           duration: const Duration(milliseconds: 180),
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 11),
           decoration: BoxDecoration(
-            color: selected
-                ? colorScheme.primary.withValues(alpha: 0.12)
-                : Colors.transparent,
+            color: selected ? colorScheme.primary : Colors.transparent,
             borderRadius: BorderRadius.circular(14),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: colorScheme.primary.withValues(alpha: 0.18),
+                      blurRadius: 12,
+                      offset: const Offset(0, 5),
+                    ),
+                  ]
+                : null,
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -147,7 +158,9 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
               Icon(
                 icon,
                 size: 18,
-                color: selected ? colorScheme.primary : colorScheme.onSurfaceVariant,
+                color: selected
+                    ? colorScheme.onPrimary
+                    : colorScheme.onSurfaceVariant,
               ),
               const SizedBox(width: 6),
               Flexible(
@@ -157,7 +170,9 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
-                    color: selected ? colorScheme.primary : colorScheme.onSurfaceVariant,
+                    color: selected
+                        ? colorScheme.onPrimary
+                        : colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
@@ -186,7 +201,10 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
                   Expanded(
                     child: Text(
                       viewModel.errorMessage,
-                      style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w700),
+                      style: const TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ],
@@ -196,10 +214,10 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
         _buildCustomerPanel(context, viewModel),
         const SizedBox(height: 16),
         Text(
-          'Select package items',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w900,
-              ),
+          'Select ${viewModel.package.name} package items',
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
         ),
         const SizedBox(height: 10),
         ...viewModel.productsForSelectedPackage().map(
@@ -212,110 +230,77 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
     );
   }
 
-  void _showPackagePicker(OrderViewModel viewModel) {
+  void _showPackageSelector(OrderViewModel viewModel) {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
         final packages = TailorCatalog.wardrobePackagesMap().values.toList();
-        final combos = {
-          'introductory_wardrobe': '58 Unique Outfit Combinations',
-          'deluxe_wardrobe': '464 Unique Outfit Combinations',
-          'premium_wardrobe': '3,648 Unique Outfit Combinations',
-        };
 
         return DraggableScrollableSheet(
-          initialChildSize: 0.6,
+          initialChildSize: 0.82,
           maxChildSize: 0.95,
-          minChildSize: 0.4,
-          builder: (_, controller) {
+          minChildSize: 0.55,
+          builder: (context, controller) {
             return Container(
               decoration: BoxDecoration(
                 color: Theme.of(context).scaffoldBackgroundColor,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(26),
+                ),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 24),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.16),
+                    blurRadius: 30,
+                    offset: const Offset(0, -10),
+                  ),
                 ],
               ),
-              padding: const EdgeInsets.all(18),
-              child: ListView.builder(
+              child: ListView(
                 controller: controller,
-                itemCount: packages.length,
-                itemBuilder: (context, index) {
-                  final pkg = packages[index];
-                  final selected = viewModel.package.id == pkg.id;
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(14),
-                      onTap: () async {
-                        final navigator = Navigator.of(context);
-                        await viewModel.setPackageById(pkg.id);
-                        if (!mounted) return;
-                        navigator.pop();
-                      },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 220),
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          gradient: selected
-                              ? LinearGradient(colors: [Theme.of(context).colorScheme.primary.withValues(alpha: 0.12), Colors.white])
-                              : null,
-                          color: selected ? null : Colors.white,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: selected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outlineVariant,
-                            width: selected ? 1.6 : 1,
-                          ),
-                          boxShadow: selected
-                              ? [BoxShadow(color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.08), blurRadius: 16, offset: const Offset(0, 8))]
-                              : [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8)],
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 64,
-                              height: 64,
-                              decoration: BoxDecoration(
-                                color: selected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Icon(Icons.checkroom, color: selected ? Colors.white : Theme.of(context).colorScheme.primary),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Expanded(child: Text(pkg.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900))),
-                                      Text(pkg.priceLabel, style: TextStyle(fontWeight: FontWeight.w900, color: Theme.of(context).colorScheme.primary)),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(pkg.subtitle, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                                  const SizedBox(height: 8),
-                                  Text(combos[pkg.id] ?? '', style: const TextStyle(fontWeight: FontWeight.w800)),
-                                ],
-                              ),
-                            ),
-                            if (selected)
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).colorScheme.primary,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(Icons.check, color: Colors.white, size: 18),
-                              ),
-                          ],
-                        ),
+                padding: EdgeInsets.fromLTRB(
+                  18,
+                  10,
+                  18,
+                  MediaQuery.paddingOf(context).bottom + 18,
+                ),
+                children: [
+                  Center(
+                    child: Container(
+                      width: 42,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                        borderRadius: BorderRadius.circular(999),
                       ),
                     ),
-                  );
-                },
+                  ),
+                  const SizedBox(height: 18),
+                  _packageSelectorHeader(context),
+                  const SizedBox(height: 16),
+                  ...packages.map(
+                    (package) => Padding(
+                      padding: const EdgeInsets.only(bottom: 14),
+                      child: _packageChoiceCard(
+                        context,
+                        package: package,
+                        selected: viewModel.package.id == package.id,
+                        onSelected: () async {
+                          final navigator = Navigator.of(context);
+                          final packageChanged =
+                              viewModel.package.id != package.id;
+                          await viewModel.setPackageById(package.id);
+                          if (packageChanged) {
+                            viewModel.clearItems();
+                          }
+                          if (!mounted) return;
+                          navigator.pop();
+                        },
+                      ),
+                    ),
+                  ),
+                ],
               ),
             );
           },
@@ -324,26 +309,340 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
     );
   }
 
-  Widget _buildPackageHero(BuildContext context, OrderViewModel viewModel) {
+  Widget _packageSelectorHeader(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final progress = viewModel.totalPackageQuantity == 0
-        ? 0.0
-        : viewModel.selectedQuantity / viewModel.totalPackageQuantity;
-
-    return DecoratedBox(
+    return Container(
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFF1B2C4A),
+        color: const Color(0xFF162A46),
         borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: colorScheme.shadow.withValues(alpha: 0.12),
+            color: const Color(0xFF162A46).withValues(alpha: 0.16),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: const Color(0xFFD2B34C).withValues(alpha: 0.16),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: const Color(0xFFD2B34C).withValues(alpha: 0.34),
+              ),
+            ),
+            child: const Icon(Icons.diamond_outlined, color: Color(0xFFD2B34C)),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Strategic Wardrobe Packages',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  'Choose the package that matches the customer wardrobe plan.',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.72),
+                    fontSize: 12,
+                    height: 1.35,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Icon(Icons.keyboard_arrow_down_rounded, color: colorScheme.onPrimary),
+        ],
+      ),
+    );
+  }
+
+  Widget _packageChoiceCard(
+    BuildContext context, {
+    required WardrobePackageSpec package,
+    required bool selected,
+    required VoidCallback onSelected,
+  }) {
+    final spec = _presentationFor(package.id);
+    final products = TailorCatalog.productsForPackage(package);
+    final isPremium = package.id == TailorCatalog.premiumPackage.id;
+
+    return InkWell(
+      onTap: onSelected,
+      borderRadius: BorderRadius.circular(22),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 240),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: spec.surface,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(
+            color: selected ? spec.accent : spec.border,
+            width: selected ? 1.8 : 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: spec.accent.withValues(alpha: selected ? 0.20 : 0.10),
+              blurRadius: selected ? 24 : 16,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 58,
+                  height: 58,
+                  decoration: BoxDecoration(
+                    color: spec.accent,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Icon(spec.icon, color: spec.onAccent, size: 28),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              package.name.toUpperCase(),
+                              style: TextStyle(
+                                color: spec.title,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                          if (isPremium)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 9,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFD2B34C),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: const Text(
+                                'Premium',
+                                style: TextStyle(
+                                  color: Color(0xFF1A2437),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        package.priceLabel,
+                        style: TextStyle(
+                          color: spec.accent,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: selected ? spec.accent : Colors.transparent,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: spec.accent, width: 1.5),
+                  ),
+                  child: selected
+                      ? Icon(Icons.check, size: 18, color: spec.onAccent)
+                      : null,
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Text(
+              package.description,
+              style: TextStyle(
+                color: spec.body,
+                height: 1.4,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: selected
+                    ? spec.accent.withValues(alpha: 0.12)
+                    : Colors.white.withValues(alpha: 0.70),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: spec.border),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    spec.combinations,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: spec.title,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    spec.valueLine,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: spec.body.withValues(alpha: 0.78),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 13),
+            Text(
+              _allocationSummary(package),
+              style: TextStyle(
+                color: spec.body,
+                fontSize: 12,
+                height: 1.45,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _packageMetaPill(
+                  context,
+                  spec: spec,
+                  icon: Icons.checkroom_outlined,
+                  label: '${package.allocations.length} categories',
+                ),
+                _packageMetaPill(
+                  context,
+                  spec: spec,
+                  icon: Icons.inventory_2_outlined,
+                  label:
+                      '${package.allocations.fold<int>(0, (sum, item) => sum + item.quantity)} items',
+                ),
+                _packageMetaPill(
+                  context,
+                  spec: spec,
+                  icon: Icons.auto_awesome_outlined,
+                  label: products.length == 1 ? 'Custom items' : 'Admin-ready',
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _packageMetaPill(
+    BuildContext context, {
+    required _PackagePresentation spec,
+    required IconData icon,
+    required String label,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.68),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: spec.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: spec.accent, size: 14),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(
+              color: spec.title,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _allocationSummary(WardrobePackageSpec package) {
+    final entries = package.allocations.map((allocation) {
+      final product = TailorCatalog.productByKey(allocation.productKey);
+      final name = allocation.quantity == 1
+          ? product.name
+          : _pluralProductName(product.name);
+      return '${allocation.quantity} $name';
+    }).toList();
+
+    return entries.join('  |  ');
+  }
+
+  String _pluralProductName(String name) {
+    if (name.endsWith('Square')) return '${name}s';
+    if (name.endsWith('Suit')) return '${name}s';
+    if (name.endsWith('Trouser')) return '${name}s';
+    if (name.endsWith('Blazer')) return '${name}s';
+    if (name.endsWith('Waistcoat')) return '${name}s';
+    if (name.endsWith('Tie')) return '${name}s';
+    if (name == 'Shirt') return 'Shirts';
+    return name;
+  }
+
+  Widget _buildPackageHero(BuildContext context, OrderViewModel viewModel) {
+    final spec = _presentationFor(viewModel.package.id);
+    final progress = viewModel.totalPackageQuantity == 0
+        ? 0.0
+        : viewModel.selectedQuantity / viewModel.totalPackageQuantity;
+    final progressLabel = '${(progress.clamp(0.0, 1.0) * 100).round()}%';
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 280),
+      decoration: BoxDecoration(
+        color: spec.hero,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: spec.accent.withValues(alpha: 0.18),
             blurRadius: 24,
             offset: const Offset(0, 12),
           ),
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -353,13 +652,13 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
                   width: 52,
                   height: 52,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFD2B34C).withValues(alpha: 0.16),
+                    color: spec.accent.withValues(alpha: 0.16),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: const Color(0xFFD2B34C).withValues(alpha: 0.35),
+                      color: spec.accent.withValues(alpha: 0.35),
                     ),
                   ),
-                  child: const Icon(Icons.workspace_premium, color: Color(0xFFD2B34C)),
+                  child: Icon(spec.icon, color: spec.accent),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -370,7 +669,7 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
                         viewModel.package.name,
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 20,
+                          fontSize: 22,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
@@ -386,6 +685,27 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
                     ],
                   ),
                 ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.16),
+                    ),
+                  ),
+                  child: Text(
+                    viewModel.package.priceLabel,
+                    style: TextStyle(
+                      color: spec.accent,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 14),
@@ -397,14 +717,28 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
               ),
             ),
             const SizedBox(height: 18),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(999),
-              child: LinearProgressIndicator(
-                value: progress.clamp(0.0, 1.0),
-                minHeight: 9,
-                backgroundColor: Colors.white.withValues(alpha: 0.14),
-                valueColor: const AlwaysStoppedAnimation(Color(0xFFD2B34C)),
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(999),
+                    child: LinearProgressIndicator(
+                      value: progress.clamp(0.0, 1.0),
+                      minHeight: 10,
+                      backgroundColor: Colors.white.withValues(alpha: 0.14),
+                      valueColor: AlwaysStoppedAnimation(spec.accent),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  progressLabel,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             Wrap(
@@ -440,10 +774,11 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
     required String value,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -484,7 +819,8 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
           _sectionTitle(
             context,
             title: 'Order details',
-            subtitle: 'These details appear on every separate department print form.',
+            subtitle:
+                'These details appear on every separate department print form.',
             icon: Icons.receipt_long_outlined,
           ),
           const SizedBox(height: 14),
@@ -535,9 +871,14 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
               _dateButton(
                 context,
                 label: 'Try Date',
-                value: viewModel.tryDate == null ? 'Select' : _formatDate(viewModel.tryDate!),
+                value: viewModel.tryDate == null
+                    ? 'Select'
+                    : _formatDate(viewModel.tryDate!),
                 onTap: () async {
-                  final date = await _pickDate(context, viewModel.tryDate ?? DateTime.now());
+                  final date = await _pickDate(
+                    context,
+                    viewModel.tryDate ?? DateTime.now(),
+                  );
                   viewModel.setTryDate(date);
                 },
               ),
@@ -550,7 +891,8 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
                 onTap: () async {
                   final date = await _pickDate(
                     context,
-                    viewModel.promiseDate ?? DateTime.now().add(const Duration(days: 7)),
+                    viewModel.promiseDate ??
+                        DateTime.now().add(const Duration(days: 7)),
                   );
                   viewModel.setPromiseDate(date);
                 },
@@ -577,7 +919,9 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -587,8 +931,20 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
-                Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800)),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ],
             ),
           ],
@@ -616,24 +972,49 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
     final allocation = viewModel.allocationFor(product.key);
     final used = viewModel.usedFor(product.key);
     final remaining = viewModel.remainingFor(product.key);
-    final progress = allocation == 0 ? 0.0 : used / allocation;
     final components = TailorCatalog.componentsFor(product.key);
+    final isFull = remaining <= 0;
 
-    return _sectionCard(
-      context,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 240),
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isFull
+              ? Colors.green.withValues(alpha: 0.34)
+              : colorScheme.outlineVariant,
+          width: isFull ? 1.4 : 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.shadow.withValues(alpha: isFull ? 0.09 : 0.05),
+            blurRadius: isFull ? 20 : 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
-                width: 50,
-                height: 50,
+                width: 54,
+                height: 54,
                 decoration: BoxDecoration(
-                  color: colorScheme.primary.withValues(alpha: 0.12),
+                  color: isFull
+                      ? Colors.green.withValues(alpha: 0.12)
+                      : colorScheme.primary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Icon(_iconForProduct(product.key), color: colorScheme.primary, size: 26),
+                child: Icon(
+                  isFull ? Icons.done_all : _iconForProduct(product.key),
+                  color: isFull ? Colors.green : colorScheme.primary,
+                  size: 26,
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -642,12 +1023,19 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
                   children: [
                     Text(
                       product.name,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       product.description,
-                      style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant, height: 1.4),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: colorScheme.onSurfaceVariant,
+                        height: 1.4,
+                      ),
                     ),
                     if (components.length > 1) ...[
                       const SizedBox(height: 6),
@@ -661,6 +1049,27 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
                       ),
                     ],
                   ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: isFull
+                      ? Colors.green.withValues(alpha: 0.10)
+                      : colorScheme.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '$used/$allocation',
+                  style: TextStyle(
+                    color: isFull ? Colors.green : colorScheme.primary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
             ],
@@ -679,47 +1088,108 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Remaining', style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 11)),
-                      const SizedBox(height: 4),
-                      Text('$remaining of $allocation', style: const TextStyle(fontWeight: FontWeight.w900)),
+                      Text(
+                        'Package slots',
+                        style: TextStyle(
+                          color: colorScheme.onSurfaceVariant,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      _packageSlotDots(
+                        context,
+                        total: allocation,
+                        filled: used,
+                      ),
                     ],
                   ),
                 ),
+                const SizedBox(width: 12),
                 FilledButton(
-                  onPressed: remaining <= 0
+                  onPressed: isFull
                       ? null
                       : () {
                           viewModel.addPackageProduct(product.key);
                           setState(() => _selectedTab = 1);
                         },
-                  child: Text(remaining <= 0 ? 'Full' : 'Add to order'),
+                  child: Text(isFull ? 'Full' : 'Add to order'),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 14),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              value: progress.clamp(0.0, 1.0),
-              minHeight: 10,
-              backgroundColor: colorScheme.primary.withValues(alpha: 0.10),
-              valueColor: AlwaysStoppedAnimation(colorScheme.primary),
-            ),
-          ),
-          const SizedBox(height: 10),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
               _smallPill(context, label: 'Selected $used'),
-              _smallPill(context, label: 'Remaining $remaining', strong: remaining == 0),
+              if (remaining == 0)
+                _smallPill(context, label: 'Package full', strong: true),
               if (allocation > 1)
                 _smallPill(context, label: '${components.length} forms'),
             ],
           ),
         ],
       ),
+    );
+  }
+
+  Widget _packageSlotDots(
+    BuildContext context, {
+    required int total,
+    required int filled,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    const activeColors = [
+      Color(0xFF006D77),
+      Color(0xFF7C3AED),
+      Color(0xFFE76F51),
+      Color(0xFF16A34A),
+      Color(0xFFD2B34C),
+      Color(0xFF2563EB),
+    ];
+
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: List.generate(total, (index) {
+        final isFilled = index < filled;
+        final activeColor = activeColors[index % activeColors.length];
+
+        return TweenAnimationBuilder<double>(
+          key: ValueKey('$total-$filled-$index'),
+          tween: Tween<double>(begin: 0, end: isFilled ? 1 : 0),
+          duration: Duration(milliseconds: 260 + (index % 6) * 45),
+          curve: Curves.easeOutCubic,
+          builder: (context, value, child) {
+            final color = Color.lerp(
+              colorScheme.outlineVariant.withValues(alpha: 0.55),
+              activeColor,
+              value,
+            )!;
+
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+                boxShadow: value == 0
+                    ? null
+                    : [
+                        BoxShadow(
+                          color: activeColor.withValues(alpha: 0.28),
+                          blurRadius: 8,
+                          spreadRadius: 1,
+                        ),
+                      ],
+              ),
+            );
+          },
+        );
+      }),
     );
   }
 
@@ -732,7 +1202,8 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
             context,
             icon: Icons.assignment_add,
             title: 'No order item selected yet',
-            message: 'Open the Package tab and add shirts, suits, trousers, waistcoats or accessories from the premium package.',
+            message:
+                'Open the Package tab and add items from the selected wardrobe package.',
           )
         else ...[
           _buildOrderActions(context, viewModel),
@@ -793,18 +1264,27 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
                   children: [
                     Text(
                       'Orders ready for stitching',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Theme.of(context).colorScheme.onSurface),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       'Review the selected items, then forward the completed order to the departments.',
-                      style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
               ),
               FilledButton.icon(
-                onPressed: viewModel.items.isEmpty ? null : () => setState(() => _selectedTab = 2),
+                onPressed: viewModel.items.isEmpty
+                    ? null
+                    : () => setState(() => _selectedTab = 2),
                 icon: const Icon(Icons.print_outlined),
                 label: const Text('Preview queue'),
               ),
@@ -815,9 +1295,21 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
             spacing: 10,
             runSpacing: 10,
             children: [
-              _smallPill(context, label: 'Items ${viewModel.items.length}', strong: true),
-              _smallPill(context, label: 'Complete ${viewModel.completedItems}'),
-              _smallPill(context, label: 'Forwardable ${viewModel.canForwardOrder ? 'Yes' : 'No'}', strong: viewModel.canForwardOrder),
+              _smallPill(
+                context,
+                label: 'Items ${viewModel.items.length}',
+                strong: true,
+              ),
+              _smallPill(
+                context,
+                label: 'Complete ${viewModel.completedItems}',
+              ),
+              _smallPill(
+                context,
+                label:
+                    'Forwardable ${viewModel.canForwardOrder ? 'Yes' : 'No'}',
+                strong: viewModel.canForwardOrder,
+              ),
             ],
           ),
           const SizedBox(height: 14),
@@ -825,7 +1317,9 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: viewModel.items.isEmpty ? null : viewModel.clearItems,
+                  onPressed: viewModel.items.isEmpty
+                      ? null
+                      : viewModel.clearItems,
                   icon: const Icon(Icons.delete_outline),
                   label: const Text('Clear all items'),
                 ),
@@ -852,7 +1346,11 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
                           if (ok) setState(() => _selectedTab = 2);
                         },
                   icon: viewModel.isBusy
-                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
                       : const Icon(Icons.send_outlined),
                   label: const Text('Forward order'),
                 ),
@@ -864,29 +1362,83 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
     );
   }
 
-  Widget _buildOrderProgressCard(BuildContext context, OrderViewModel viewModel) {
-    return _sectionCard(
-      context,
+  Widget _buildOrderProgressCard(
+    BuildContext context,
+    OrderViewModel viewModel,
+  ) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final total = viewModel.items.length;
+    final progress = total == 0 ? 0.0 : viewModel.completedItems / total;
+    final statusColor = viewModel.canForwardOrder
+        ? Colors.green
+        : colorScheme.primary;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 240),
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: statusColor.withValues(alpha: 0.22)),
+        boxShadow: [
+          BoxShadow(
+            color: statusColor.withValues(alpha: 0.10),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
       child: Row(
         children: [
-          Icon(
-            viewModel.canForwardOrder ? Icons.verified : Icons.rule_outlined,
-            color: viewModel.canForwardOrder ? Colors.green : Theme.of(context).colorScheme.primary,
-            size: 34,
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              SizedBox(
+                width: 54,
+                height: 54,
+                child: CircularProgressIndicator(
+                  value: progress.clamp(0.0, 1.0),
+                  strokeWidth: 5,
+                  backgroundColor: statusColor.withValues(alpha: 0.12),
+                  valueColor: AlwaysStoppedAnimation(statusColor),
+                ),
+              ),
+              Icon(
+                viewModel.canForwardOrder ? Icons.verified : Icons.rule,
+                color: statusColor,
+                size: 24,
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  viewModel.canForwardOrder ? 'Order complete' : 'Complete measurements and styling',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                  viewModel.canForwardOrder
+                      ? 'Order complete'
+                      : 'Complete measurements and styling',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Completed ${viewModel.completedItems} of ${viewModel.items.length} selected package items.',
-                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  style: TextStyle(color: colorScheme.onSurfaceVariant),
+                ),
+                const SizedBox(height: 10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    value: progress.clamp(0.0, 1.0),
+                    minHeight: 7,
+                    backgroundColor: statusColor.withValues(alpha: 0.12),
+                    valueColor: AlwaysStoppedAnimation(statusColor),
+                  ),
                 ),
               ],
             ),
@@ -908,6 +1460,15 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
 
     return Card(
       clipBehavior: Clip.antiAlias,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(
+          color: complete
+              ? Colors.green.withValues(alpha: 0.28)
+              : colorScheme.outlineVariant,
+        ),
+      ),
       child: ExpansionTile(
         initiallyExpanded: viewModel.items.first.id == item.id,
         tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -944,7 +1505,9 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
               decoration: BoxDecoration(
                 color: colorScheme.tertiary.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: colorScheme.tertiary.withValues(alpha: 0.18)),
+                border: Border.all(
+                  color: colorScheme.tertiary.withValues(alpha: 0.18),
+                ),
               ),
               child: Text(
                 'Required before forwarding: ${missing.take(6).join(' • ')}${missing.length > 6 ? ' ...' : ''}',
@@ -1005,11 +1568,17 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
                   children: [
                     Text(
                       component.name,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     Text(
                       component.department,
-                      style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
@@ -1021,20 +1590,26 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
             key: ValueKey('size-${item.id}-${component.key}'),
             label: component.sizeLabel,
             value: item.sizes[component.key] ?? '',
-            suggestions: (query) => TailorCatalog.sizeSuggestions(component.key, query),
-            onChanged: (value) => viewModel.updateSize(item.id, component.key, value),
+            suggestions: (query) =>
+                TailorCatalog.sizeSuggestions(component.key, query),
+            onChanged: (value) =>
+                viewModel.updateSize(item.id, component.key, value),
           ),
           if (component.measurementFields.isNotEmpty) ...[
             const SizedBox(height: 14),
             _subSectionLabel(context, 'Measurements'),
             const SizedBox(height: 8),
             ...component.measurementFields.map((field) {
-              final entry = item.measurements[
-                    TailorCatalog.measurementKey(component.key, field.label)
-                  ] ??
+              final entry =
+                  item.measurements[TailorCatalog.measurementKey(
+                    component.key,
+                    field.label,
+                  )] ??
                   const MeasurementEntry();
               return MeasurementInputRow(
-                key: ValueKey('measurement-${item.id}-${component.key}-${field.label}'),
+                key: ValueKey(
+                  'measurement-${item.id}-${component.key}-${field.label}',
+                ),
                 label: field.label,
                 entry: entry,
                 onBodyChanged: (value) => viewModel.updateMeasurement(
@@ -1066,14 +1641,20 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
               (section) => Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: StylingSectionField(
-                  key: ValueKey('style-${item.id}-${component.key}-${section.title}'),
+                  key: ValueKey(
+                    'style-${item.id}-${component.key}-${section.title}',
+                  ),
                   section: section,
-                  selectedValue: item.stylingSelections[
-                    TailorCatalog.styleKey(component.key, section.title)
-                  ],
-                  note: item.stylingNotes[
-                        TailorCatalog.styleKey(component.key, section.title)
-                      ] ??
+                  selectedValue:
+                      item.stylingSelections[TailorCatalog.styleKey(
+                        component.key,
+                        section.title,
+                      )],
+                  note:
+                      item.stylingNotes[TailorCatalog.styleKey(
+                        component.key,
+                        section.title,
+                      )] ??
                       '',
                   onSelected: (value) => viewModel.updateStyling(
                     itemId: item.id,
@@ -1107,7 +1688,8 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
             context,
             icon: Icons.print_disabled_outlined,
             title: 'No printable forms yet',
-            message: 'Add package items first. Every item will create a separate printable form for the relevant department.',
+            message:
+                'Add package items first. Every item will create a separate printable form for the relevant department.',
           )
         else ...[
           _sectionCard(
@@ -1115,7 +1697,8 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
             child: _sectionTitle(
               context,
               title: 'Department print queue',
-              subtitle: 'Each card opens one separate form: shirt to shirt department, coat to coat department, pant to pant department, and so on.',
+              subtitle:
+                  'Each card opens one separate form: shirt to shirt department, coat to coat department, pant to pant department, and so on.',
               icon: Icons.print_outlined,
             ),
           ),
@@ -1162,11 +1745,17 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(form.title, style: const TextStyle(fontWeight: FontWeight.w900)),
+                Text(
+                  form.title,
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
                 const SizedBox(height: 3),
                 Text(
                   form.department,
-                  style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
                 if (!complete)
                   Text(
@@ -1240,9 +1829,21 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
               const SizedBox(height: 3),
-              Text(subtitle, style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant)),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
             ],
           ),
         ),
@@ -1261,7 +1862,11 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
     );
   }
 
-  Widget _smallPill(BuildContext context, {required String label, bool strong = false}) {
+  Widget _smallPill(
+    BuildContext context, {
+    required String label,
+    bool strong = false,
+  }) {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -1295,16 +1900,26 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
       child: Center(
         child: Column(
           children: [
-            Icon(icon, size: 68, color: colorScheme.primary.withValues(alpha: 0.45)),
+            Icon(
+              icon,
+              size: 68,
+              color: colorScheme.primary.withValues(alpha: 0.45),
+            ),
             const SizedBox(height: 14),
-            Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+            Text(
+              title,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+            ),
             const SizedBox(height: 6),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Text(
                 message,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: colorScheme.onSurfaceVariant, height: 1.4),
+                style: TextStyle(
+                  color: colorScheme.onSurfaceVariant,
+                  height: 1.4,
+                ),
               ),
             ),
           ],
@@ -1312,6 +1927,76 @@ class _OrderBuilderViewState extends State<OrderBuilderView> {
       ),
     );
   }
+}
+
+class _PackagePresentation {
+  final Color accent;
+  final Color onAccent;
+  final Color hero;
+  final Color surface;
+  final Color border;
+  final Color title;
+  final Color body;
+  final IconData icon;
+  final String combinations;
+  final String valueLine;
+
+  const _PackagePresentation({
+    required this.accent,
+    required this.onAccent,
+    required this.hero,
+    required this.surface,
+    required this.border,
+    required this.title,
+    required this.body,
+    required this.icon,
+    required this.combinations,
+    required this.valueLine,
+  });
+}
+
+const _packagePresentations = {
+  'introductory_wardrobe': _PackagePresentation(
+    accent: Color(0xFF2563EB),
+    onAccent: Colors.white,
+    hero: Color(0xFF213E6A),
+    surface: Color(0xFFF4F8FF),
+    border: Color(0xFFC9D9F8),
+    title: Color(0xFF17345F),
+    body: Color(0xFF435979),
+    icon: Icons.school_outlined,
+    combinations: '58 Unique Outfit Combinations',
+    valueLine: 'PKR 2,586 per outfit',
+  ),
+  'deluxe_wardrobe': _PackagePresentation(
+    accent: Color(0xFF7C3AED),
+    onAccent: Colors.white,
+    hero: Color(0xFF34235D),
+    surface: Color(0xFFF8F4FF),
+    border: Color(0xFFDCCCF8),
+    title: Color(0xFF30204F),
+    body: Color(0xFF5B4C74),
+    icon: Icons.style_outlined,
+    combinations: '464 Unique Outfit Combinations',
+    valueLine: 'PKR 647 per outfit',
+  ),
+  'premium_wardrobe': _PackagePresentation(
+    accent: Color(0xFFD2B34C),
+    onAccent: Color(0xFF1A2437),
+    hero: Color(0xFF16243A),
+    surface: Color(0xFFFFFAE8),
+    border: Color(0xFFE6CA69),
+    title: Color(0xFF172238),
+    body: Color(0xFF5D5130),
+    icon: Icons.workspace_premium_outlined,
+    combinations: '3,648 Unique Outfit Combinations',
+    valueLine: 'PKR 164 per outfit over 5 years',
+  ),
+};
+
+_PackagePresentation _presentationFor(String packageId) {
+  return _packagePresentations[packageId] ??
+      _packagePresentations[TailorCatalog.premiumPackage.id]!;
 }
 
 class SizeSelectorField extends StatefulWidget {
@@ -1430,7 +2115,11 @@ class PrintableFormPreviewView extends StatelessWidget {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('This ${form.component.name} form is separated for ${form.department}.')),
+            SnackBar(
+              content: Text(
+                'This ${form.component.name} form is separated for ${form.department}.',
+              ),
+            ),
           );
         },
         icon: const Icon(Icons.print_outlined),
@@ -1458,7 +2147,10 @@ class PrintableFormPreviewView extends StatelessWidget {
                             color: colorScheme.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          child: Icon(_iconForProduct(form.component.key), color: colorScheme.primary),
+                          child: Icon(
+                            _iconForProduct(form.component.key),
+                            color: colorScheme.primary,
+                          ),
                         ),
                         const SizedBox(width: 14),
                         Expanded(
@@ -1477,9 +2169,17 @@ class PrintableFormPreviewView extends StatelessWidget {
                               const SizedBox(height: 4),
                               Text(
                                 form.title,
-                                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w900,
+                                ),
                               ),
-                              Text(form.department, style: TextStyle(color: colorScheme.onSurfaceVariant)),
+                              Text(
+                                form.department,
+                                style: TextStyle(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -1530,12 +2230,27 @@ class PrintableFormPreviewView extends StatelessWidget {
   Widget _printInfoGrid(BuildContext context) {
     final size = form.item.sizes[form.component.key] ?? '';
     final data = <MapEntry<String, String>>[
-      MapEntry('Name', customerName.trim().isEmpty ? '________________' : customerName),
-      MapEntry('Contact', contactNumber.trim().isEmpty ? '________________' : contactNumber),
-      MapEntry('Invoice #', invoiceNumber.trim().isEmpty ? '________________' : invoiceNumber),
+      MapEntry(
+        'Name',
+        customerName.trim().isEmpty ? '________________' : customerName,
+      ),
+      MapEntry(
+        'Contact',
+        contactNumber.trim().isEmpty ? '________________' : contactNumber,
+      ),
+      MapEntry(
+        'Invoice #',
+        invoiceNumber.trim().isEmpty ? '________________' : invoiceNumber,
+      ),
       MapEntry('Order Date', _formatDate(orderDate)),
-      MapEntry('Try Date', tryDate == null ? '________________' : _formatDate(tryDate!)),
-      MapEntry('Promise Date', promiseDate == null ? '________________' : _formatDate(promiseDate!)),
+      MapEntry(
+        'Try Date',
+        tryDate == null ? '________________' : _formatDate(tryDate!),
+      ),
+      MapEntry(
+        'Promise Date',
+        promiseDate == null ? '________________' : _formatDate(promiseDate!),
+      ),
       MapEntry('Size', size.trim().isEmpty ? '________________' : size),
       MapEntry('Department', form.department),
     ];
@@ -1548,15 +2263,29 @@ class PrintableFormPreviewView extends StatelessWidget {
           width: MediaQuery.sizeOf(context).width < 520 ? double.infinity : 180,
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(entry.key, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800)),
+              Text(
+                entry.key,
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
               const SizedBox(height: 3),
-              Text(entry.value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+              Text(
+                entry.value,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ],
           ),
         );
@@ -1570,7 +2299,9 @@ class PrintableFormPreviewView extends StatelessWidget {
     }
 
     return Table(
-      border: TableBorder.all(color: Theme.of(context).colorScheme.outlineVariant),
+      border: TableBorder.all(
+        color: Theme.of(context).colorScheme.outlineVariant,
+      ),
       columnWidths: const {
         0: FlexColumnWidth(1.2),
         1: FlexColumnWidth(1),
@@ -1580,9 +2311,11 @@ class PrintableFormPreviewView extends StatelessWidget {
       children: [
         _tableRow(['Measurement', 'Body', 'Finished', 'Remarks'], header: true),
         ...form.component.measurementFields.map((field) {
-          final entry = form.item.measurements[
-                TailorCatalog.measurementKey(form.component.key, field.label)
-              ] ??
+          final entry =
+              form.item.measurements[TailorCatalog.measurementKey(
+                form.component.key,
+                field.label,
+              )] ??
               const MeasurementEntry();
           return _tableRow([
             field.label,
@@ -1627,13 +2360,18 @@ class PrintableFormPreviewView extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 8),
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(section.title, style: const TextStyle(fontWeight: FontWeight.w900)),
+              Text(
+                section.title,
+                style: const TextStyle(fontWeight: FontWeight.w900),
+              ),
               const SizedBox(height: 3),
               Text(selected.trim().isEmpty ? 'Not selected' : selected),
               if (note.trim().isNotEmpty) ...[
@@ -1650,7 +2388,11 @@ class PrintableFormPreviewView extends StatelessWidget {
   Widget _printBlockTitle(String text) {
     return Text(
       text.toUpperCase(),
-      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1),
+      style: const TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w900,
+        letterSpacing: 1,
+      ),
     );
   }
 }

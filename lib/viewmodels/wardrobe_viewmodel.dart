@@ -10,6 +10,12 @@ class WardrobeViewModel extends BaseViewModel {
   List<Wardrobe> get wardrobeItems => _filteredItems;
   int get totalItems => _wardrobeItems.length;
   String get selectedFilter => _selectedFilter;
+  double get totalBaseAmount =>
+      _wardrobeItems.fold(0, (sum, item) => sum + item.basePrice);
+  double get totalFabricCredit =>
+      _wardrobeItems.fold(0, (sum, item) => sum + item.fabricCredit);
+  double get totalAdjustedAmount =>
+      _wardrobeItems.fold(0, (sum, item) => sum + item.adjustedPrice);
 
   // 'stitching' replaced with 'processing'
   List<String> get filters => ['All', 'Selected', 'Processing', 'Completed'];
@@ -95,7 +101,10 @@ class WardrobeViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  Future<bool> addDesignToWardrobe(Design design) async {
+  Future<bool> addDesignToWardrobe(
+    Design design, {
+    List<FabricComponentChoice>? fabricChoices,
+  }) async {
     if (_wardrobeItems.any((item) => item.designId == design.id)) return false;
     _wardrobeItems.insert(
       0,
@@ -106,6 +115,7 @@ class WardrobeViewModel extends BaseViewModel {
         status: 'selected',
         createdAt: DateTime.now(),
         design: design.copyWith(status: 'selected'),
+        fabricChoices: fabricChoices ?? fabricChoicesForDesign(design),
       ),
     );
     _applyFilter();
@@ -125,16 +135,69 @@ class WardrobeViewModel extends BaseViewModel {
   Future<void> updateStatus(String wardrobeId, String newStatus) async {
     final index = _wardrobeItems.indexWhere((item) => item.id == wardrobeId);
     if (index == -1) return;
-    _wardrobeItems[index] = Wardrobe(
-      id: _wardrobeItems[index].id,
-      userId: _wardrobeItems[index].userId,
-      designId: _wardrobeItems[index].designId,
-      status: newStatus,
-      createdAt: _wardrobeItems[index].createdAt,
-      design: _wardrobeItems[index].design,
+    _wardrobeItems[index] = _wardrobeItems[index].copyWith(status: newStatus);
+    _applyFilter();
+    notifyListeners();
+  }
+
+  Future<void> updateFabricChoices(
+    String wardrobeId,
+    List<FabricComponentChoice> choices,
+  ) async {
+    final index = _wardrobeItems.indexWhere((item) => item.id == wardrobeId);
+    if (index == -1) return;
+    _wardrobeItems[index] = _wardrobeItems[index].copyWith(
+      fabricChoices: choices,
     );
     _applyFilter();
     notifyListeners();
+  }
+
+  List<FabricComponentChoice> fabricChoicesForDesign(Design design) {
+    final components = fabricComponentsForDesign(design);
+    final creditShare = estimatedFabricCredit(design) / components.length;
+    return components
+        .map(
+          (component) => FabricComponentChoice(
+            componentName: component,
+            fabricCredit: creditShare,
+          ),
+        )
+        .toList();
+  }
+
+  List<String> fabricComponentsForDesign(Design design) {
+    final source = '${design.name} ${design.category}'.toLowerCase();
+    if (source.contains('three-piece') || source.contains('three piece')) {
+      return ['Coat', 'Trouser', 'Waistcoat'];
+    }
+    if (source.contains('two-piece') ||
+        source.contains('two piece') ||
+        source.contains('suit')) {
+      return ['Coat', 'Trouser'];
+    }
+    if (source.contains('shalwar kameez')) {
+      return ['Kameez', 'Shalwar'];
+    }
+    if (source.contains('shirt')) return ['Shirt'];
+    if (source.contains('trouser') || source.contains('pant')) {
+      return ['Trouser'];
+    }
+    if (source.contains('coat') || source.contains('blazer')) return ['Coat'];
+    if (source.contains('waistcoat')) return ['Waistcoat'];
+    return [design.category];
+  }
+
+  double estimatedFabricCredit(Design design) {
+    final source = '${design.name} ${design.category}'.toLowerCase();
+    final rate = source.contains('tie') || source.contains('pocket square')
+        ? 0.18
+        : source.contains('suit') ||
+              source.contains('coat') ||
+              source.contains('blazer')
+        ? 0.38
+        : 0.32;
+    return design.price * rate;
   }
 
   void _applyFilter() {

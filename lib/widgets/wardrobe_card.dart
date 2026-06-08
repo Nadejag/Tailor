@@ -115,7 +115,9 @@ class WardrobeCard extends StatelessWidget {
                       left: 12,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 5),
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.black.withValues(alpha: 0.45),
                           borderRadius: BorderRadius.circular(20),
@@ -123,9 +125,10 @@ class WardrobeCard extends StatelessWidget {
                         child: Text(
                           wardrobe.design?.category ?? '',
                           style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700),
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                     ),
@@ -135,7 +138,9 @@ class WardrobeCard extends StatelessWidget {
                       right: 12,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 5),
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
                         decoration: BoxDecoration(
                           color: st.bg,
                           borderRadius: BorderRadius.circular(20),
@@ -148,9 +153,10 @@ class WardrobeCard extends StatelessWidget {
                             Text(
                               st.label,
                               style: TextStyle(
-                                  color: st.color,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700),
+                                color: st.color,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ],
                         ),
@@ -177,40 +183,128 @@ class WardrobeCard extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          Text(
-                            'Rs. ${wardrobe.design?.price.toStringAsFixed(0) ?? '–'}',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.9),
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                            ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              if (wardrobe.fabricCredit > 0)
+                                Text(
+                                  'Rs. ${wardrobe.basePrice.toStringAsFixed(0)}',
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.62),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    decoration: TextDecoration.lineThrough,
+                                    decorationColor: Colors.white70,
+                                  ),
+                                ),
+                              Text(
+                                'Rs. ${wardrobe.adjustedPrice.toStringAsFixed(0)}',
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.94),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
                     ),
+                    if (wardrobe.hasCustomerFabric)
+                      Positioned(
+                        bottom: 42,
+                        left: 12,
+                        child: Container(
+                          constraints: const BoxConstraints(maxWidth: 250),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFD2B34C),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            wardrobe.fabricSummary,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Color(0xFF1A2437),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
 
               // ── Progress stepper ───────────────────────────────────────
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _ProgressStepper(currentStep: currentStep),
                     const SizedBox(height: 12),
+                    if (wardrobe.fabricCredit > 0) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 9,
+                        ),
+                        decoration: BoxDecoration(
+                          color: cs.primary.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: cs.primary.withValues(alpha: 0.18),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.inventory_2_outlined,
+                              size: 16,
+                              color: cs.primary,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                '${wardrobe.fabricSummary} • credit Rs. ${wardrobe.fabricCredit.toStringAsFixed(0)}',
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: cs.primary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
                     Row(
                       children: [
                         // date
-                        Icon(Icons.calendar_today_outlined,
-                            size: 13, color: cs.onSurfaceVariant),
+                        Icon(
+                          Icons.calendar_today_outlined,
+                          size: 13,
+                          color: cs.onSurfaceVariant,
+                        ),
                         const SizedBox(width: 5),
                         Text(
                           _formatDate(wardrobe.createdAt),
                           style: TextStyle(
-                              fontSize: 12, color: cs.onSurfaceVariant),
+                            fontSize: 12,
+                            color: cs.onSurfaceVariant,
+                          ),
                         ),
                         const Spacer(),
                         // action button
@@ -218,7 +312,9 @@ class WardrobeCard extends StatelessWidget {
                           onTap: onTap,
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 7),
+                              horizontal: 14,
+                              vertical: 7,
+                            ),
                             decoration: BoxDecoration(
                               color: cs.primary,
                               borderRadius: BorderRadius.circular(20),
@@ -244,8 +340,11 @@ class WardrobeCard extends StatelessWidget {
                                 color: Colors.red.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(20),
                               ),
-                              child: const Icon(Icons.delete_outline,
-                                  color: Colors.red, size: 17),
+                              child: const Icon(
+                                Icons.delete_outline,
+                                color: Colors.red,
+                                size: 17,
+                              ),
                             ),
                           ),
                         ],
@@ -263,8 +362,18 @@ class WardrobeCard extends StatelessWidget {
 
   String _formatDate(DateTime dt) {
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
   }
@@ -306,7 +415,8 @@ class _ProgressStepper extends StatelessWidget {
                         border: active
                             ? Border.all(
                                 color: cs.primary.withValues(alpha: 0.3),
-                                width: 3)
+                                width: 3,
+                              )
                             : null,
                       ),
                       child: Icon(
@@ -320,9 +430,7 @@ class _ProgressStepper extends StatelessWidget {
                       labels[i],
                       style: TextStyle(
                         fontSize: 10,
-                        fontWeight: active
-                            ? FontWeight.w700
-                            : FontWeight.w500,
+                        fontWeight: active ? FontWeight.w700 : FontWeight.w500,
                         color: done ? cs.primary : Colors.grey.shade400,
                       ),
                     ),

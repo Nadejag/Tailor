@@ -62,24 +62,24 @@ class PaymentViewModel extends BaseViewModel {
   Future<bool> recordPayment(
     String userId,
     double amount,
-    String method,
-  ) async {
+    String method, {
+    double? totalOverride,
+  }) async {
     setBusy(true);
     try {
       // Simulating API call
       await Future.delayed(Duration(seconds: 1));
 
       if (_payment != null) {
+        final totalAmount = totalOverride ?? _payment!.totalAmount;
         final newPaidAmount = _payment!.paidAmount + amount;
-        final newRemaining = _payment!.totalAmount - newPaidAmount;
+        final newRemaining = totalAmount - newPaidAmount;
 
         _payment = Payment(
           id: _payment!.id,
           userId: _payment!.userId,
-          totalAmount: _payment!.totalAmount,
-          paidAmount: newPaidAmount > _payment!.totalAmount
-              ? _payment!.totalAmount
-              : newPaidAmount,
+          totalAmount: totalAmount,
+          paidAmount: newPaidAmount > totalAmount ? totalAmount : newPaidAmount,
           remainingAmount: newRemaining < 0 ? 0 : newRemaining,
           createdAt: _payment!.createdAt,
         );

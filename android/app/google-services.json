@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "623907624206",
+    "project_id": "tailor-bd5a1",
+    "storage_bucket": "tailor-bd5a1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:623907624206:android:40d4b32bd846fae58bf35f",
+        "android_client_info": {
+          "package_name": "com.koadly.tailor"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAfByrGb7r3FsPB43rPazwBFMhFn614FIg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

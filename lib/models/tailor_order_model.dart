@@ -111,10 +111,10 @@ class MeasurementEntry {
   bool get hasValue => body.trim().isNotEmpty || finished.trim().isNotEmpty;
 
   Map<String, dynamic> toJson() => {
-        'body': body,
-        'finished': finished,
-        'remarks': remarks,
-      };
+    'body': body,
+    'finished': finished,
+    'remarks': remarks,
+  };
 }
 
 class TailorOrderItem {
@@ -197,9 +197,8 @@ class DepartmentPrintForm {
     required this.parent,
   });
 
-  String get title => parent.isComposite
-      ? '${parent.name} - ${component.name}'
-      : parent.name;
+  String get title =>
+      parent.isComposite ? '${parent.name} - ${component.name}' : parent.name;
 
   String get department => component.department;
 }
@@ -367,7 +366,12 @@ class TailorCatalog {
       department: 'Accessories Department',
       description: 'Tie selection details for the package.',
       sizeLabel: 'Tie length / width',
-      sizeOptions: ['Regular 58 in', 'Long 62 in', 'Slim 2.5 in', 'Classic 3.25 in'],
+      sizeOptions: [
+        'Regular 58 in',
+        'Long 62 in',
+        'Slim 2.5 in',
+        'Classic 3.25 in',
+      ],
       stylingSections: accessoryTieStyling,
     ),
     TailorProductSpec(
@@ -418,11 +422,10 @@ class TailorCatalog {
 
   static const WardrobePackageSpec premiumPackage = WardrobePackageSpec(
     id: 'premium_wardrobe',
-    name: 'Premium Strategic Wardrobe',
-    subtitle: 'Final complete wardrobe roadmap',
-    description:
-        'A complete wardrobe package for a customer building a life or career wardrobe. Pricing and outfit combinations can be attached later.',
-    priceLabel: 'Pricing later',
+    name: 'Premium',
+    subtitle: 'Executive strategic wardrobe',
+    description: 'For the executive whose wardrobe is a strategic asset.',
+    priceLabel: 'PKR 600,000',
     allocations: [
       PackageAllocation(productKey: twoPieceSuitKey, quantity: 4),
       PackageAllocation(productKey: shirtKey, quantity: 28),
@@ -439,7 +442,8 @@ class TailorCatalog {
     id: 'introductory_wardrobe',
     name: 'Introductory',
     subtitle: 'Starter wardrobe',
-    description: 'For the professional building his first complete strategic wardrobe',
+    description:
+        'For the professional building his first complete strategic wardrobe.',
     priceLabel: 'PKR 150,000',
     allocations: [
       PackageAllocation(productKey: twoPieceSuitKey, quantity: 1),
@@ -457,7 +461,8 @@ class TailorCatalog {
     id: 'deluxe_wardrobe',
     name: 'Deluxe',
     subtitle: 'Complete coverage',
-    description: 'For the professional who needs complete coverage across every occasion',
+    description:
+        'For the professional who needs complete coverage across every occasion.',
     priceLabel: 'PKR 300,000',
     allocations: [
       PackageAllocation(productKey: twoPieceSuitKey, quantity: 2),
@@ -496,7 +501,9 @@ class TailorCatalog {
   }
 
   static List<TailorProductSpec> productsForPackage(WardrobePackageSpec pkg) {
-    return pkg.allocations.map((allocation) => productByKey(allocation.productKey)).toList();
+    return pkg.allocations
+        .map((allocation) => productByKey(allocation.productKey))
+        .toList();
   }
 
   static List<String> sizeSuggestions(String componentKey, String query) {
@@ -524,13 +531,15 @@ class TailorCatalog {
 
       for (final field in component.measurementFields) {
         if (!field.required) continue;
-        final entry = item.measurements[measurementKey(component.key, field.label)];
+        final entry =
+            item.measurements[measurementKey(component.key, field.label)];
         if (entry == null || !entry.hasValue) return false;
       }
 
       for (final section in component.stylingSections) {
         if (!section.required) continue;
-        final selected = item.stylingSelections[styleKey(component.key, section.title)];
+        final selected =
+            item.stylingSelections[styleKey(component.key, section.title)];
         if (selected == null || selected.trim().isEmpty) return false;
       }
     }
@@ -544,21 +553,29 @@ class TailorCatalog {
         missing.add('${component.name}: size');
       }
 
-      final missingMeasurements = component.measurementFields.where((field) {
-        if (!field.required) return false;
-        final entry = item.measurements[measurementKey(component.key, field.label)];
-        return entry == null || !entry.hasValue;
-      }).map((field) => field.label).toList();
+      final missingMeasurements = component.measurementFields
+          .where((field) {
+            if (!field.required) return false;
+            final entry =
+                item.measurements[measurementKey(component.key, field.label)];
+            return entry == null || !entry.hasValue;
+          })
+          .map((field) => field.label)
+          .toList();
 
       if (missingMeasurements.isNotEmpty) {
         missing.add('${component.name}: ${missingMeasurements.join(', ')}');
       }
 
-      final missingStyles = component.stylingSections.where((section) {
-        if (!section.required) return false;
-        final selected = item.stylingSelections[styleKey(component.key, section.title)];
-        return selected == null || selected.trim().isEmpty;
-      }).map((section) => section.title).toList();
+      final missingStyles = component.stylingSections
+          .where((section) {
+            if (!section.required) return false;
+            final selected =
+                item.stylingSelections[styleKey(component.key, section.title)];
+            return selected == null || selected.trim().isEmpty;
+          })
+          .map((section) => section.title)
+          .toList();
 
       if (missingStyles.isNotEmpty) {
         missing.add('${component.name} styling: ${missingStyles.join(', ')}');

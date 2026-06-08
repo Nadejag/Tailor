@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../utils/responsive.dart';
 import '../../viewmodels/payment_viewmodel.dart';
+import '../../viewmodels/wardrobe_viewmodel.dart';
 import '../../widgets/payment_history_item.dart';
 
 class PaymentView extends StatefulWidget {
@@ -18,19 +19,30 @@ class _PaymentViewState extends State<PaymentView> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       context.read<PaymentViewModel>().fetchPaymentInfo('user1');
+      context.read<WardrobeViewModel>().fetchWardrobeItems();
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Payments')),
-      body: Consumer<PaymentViewModel>(
-        builder: (context, viewModel, child) {
-          final progress =
-              viewModel.payment == null || viewModel.payment!.totalAmount == 0
+      appBar: AppBar(title: const Text('Payments')),
+      body: Consumer2<PaymentViewModel, WardrobeViewModel>(
+        builder: (context, viewModel, wardrobeViewModel, child) {
+          final colorScheme = Theme.of(context).colorScheme;
+          final wardrobeTotal = wardrobeViewModel.totalAdjustedAmount;
+          final effectiveTotal = wardrobeTotal > 0
+              ? wardrobeTotal
+              : viewModel.payment?.totalAmount ?? 0;
+          final effectivePaid = (viewModel.payment?.paidAmount ?? 0)
+              .clamp(0, effectiveTotal)
+              .toDouble();
+          final effectiveRemaining = (effectiveTotal - effectivePaid)
+              .clamp(0, double.infinity)
+              .toDouble();
+          final progress = effectiveTotal == 0
               ? 0.0
-              : viewModel.payment!.paidAmount / viewModel.payment!.totalAmount;
+              : effectivePaid / effectiveTotal;
 
           return SingleChildScrollView(
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
@@ -38,10 +50,16 @@ class _PaymentViewState extends State<PaymentView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Payment Summary Cards
                   if (viewModel.payment != null) ...[
-                    _buildPaymentHero(context, viewModel, progress),
-                    SizedBox(height: 18),
+                    _buildPaymentHero(
+                      context,
+                      progress: progress,
+                      paid: effectivePaid,
+                      total: effectiveTotal,
+                      remaining: effectiveRemaining,
+                      fabricCredit: wardrobeViewModel.totalFabricCredit,
+                    ),
+                    const SizedBox(height: 18),
                     LayoutBuilder(
                       builder: (context, constraints) {
                         final gap = AppSpacing.cardGap(context);
@@ -57,8 +75,8 @@ class _PaymentViewState extends State<PaymentView> {
                               width: cardWidth,
                               child: _buildSummaryCard(
                                 'Total Orders',
-                                '${viewModel.totalOrders}',
-                                Theme.of(context).colorScheme.primary,
+                                '${wardrobeViewModel.totalItems == 0 ? viewModel.totalOrders : wardrobeViewModel.totalItems}',
+                                colorScheme.primary,
                                 Icons.inventory_2_outlined,
                               ),
                             ),
@@ -66,8 +84,8 @@ class _PaymentViewState extends State<PaymentView> {
                               width: cardWidth,
                               child: _buildSummaryCard(
                                 'Total Amount',
-                                'Rs. ${viewModel.payment!.totalAmount.toStringAsFixed(2)}',
-                                Theme.of(context).colorScheme.secondary,
+                                'Rs. ${effectiveTotal.toStringAsFixed(2)}',
+                                colorScheme.secondary,
                                 Icons.shopping_bag_outlined,
                               ),
                             ),
@@ -75,7 +93,7 @@ class _PaymentViewState extends State<PaymentView> {
                               width: cardWidth,
                               child: _buildSummaryCard(
                                 'Paid',
-                                'Rs. ${viewModel.payment!.paidAmount.toStringAsFixed(2)}',
+                                'Rs. ${effectivePaid.toStringAsFixed(2)}',
                                 Colors.green,
                                 Icons.check_circle_outline,
                               ),
@@ -84,8 +102,8 @@ class _PaymentViewState extends State<PaymentView> {
                               width: cardWidth,
                               child: _buildSummaryCard(
                                 'Remaining',
-                                'Rs. ${viewModel.payment!.remainingAmount.toStringAsFixed(2)}',
-                                Theme.of(context).colorScheme.tertiary,
+                                'Rs. ${effectiveRemaining.toStringAsFixed(2)}',
+                                colorScheme.tertiary,
                                 Icons.pending_actions_outlined,
                               ),
                             ),
@@ -93,99 +111,84 @@ class _PaymentViewState extends State<PaymentView> {
                         );
                       },
                     ),
-                    SizedBox(height: 24),
-                    Container(
-                      padding: EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: Theme.of(context).colorScheme.outlineVariant,
+                    const SizedBox(height: 28),
+                  ],
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: colorScheme.outlineVariant),
+                      boxShadow: [
+                        BoxShadow(
+                          color: colorScheme.shadow.withValues(alpha: 0.05),
+                          blurRadius: 16,
+                          offset: const Offset(0, 8),
                         ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Payment Progress',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                            ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: colorScheme.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(13),
                           ),
-                          SizedBox(height: 12),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: LinearProgressIndicator(
-                              minHeight: 12,
-                              value: progress.clamp(0, 1),
-                              backgroundColor: Colors.grey[300],
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.green,
-                              ),
-                            ),
+                          child: Icon(
+                            Icons.history_rounded,
+                            color: colorScheme.primary,
                           ),
-                          SizedBox(height: 8),
-                          Wrap(
-                            spacing: 12,
-                            runSpacing: 6,
-                            alignment: WrapAlignment.spaceBetween,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                '${(progress * 100).toStringAsFixed(1)}% Paid',
+                              const Text(
+                                'Payment History',
                                 style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.grey[600],
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w900,
                                 ),
                               ),
+                              const SizedBox(height: 3),
                               Text(
-                                'Remaining: Rs. ${viewModel.payment!.remainingAmount.toStringAsFixed(2)}',
+                                '${viewModel.paymentHistory.length} recorded transaction${viewModel.paymentHistory.length == 1 ? '' : 's'}',
                                 style: TextStyle(
                                   fontSize: 12,
+                                  color: colorScheme.onSurfaceVariant,
                                   fontWeight: FontWeight.w600,
-                                  color: Colors.orange,
                                 ),
                               ),
                             ],
                           ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(width: 12),
+                        FilledButton.icon(
+                          onPressed: () => _showRecordPaymentDialog(
+                            context,
+                            viewModel,
+                            effectiveTotal,
+                          ),
+                          icon: const Icon(Icons.add, size: 18),
+                          label: const Text('Record'),
+                          style: FilledButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    SizedBox(height: 32),
-                  ],
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Payment History',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: 12),
-                      FilledButton.icon(
-                        onPressed: () =>
-                            _showRecordPaymentDialog(context, viewModel),
-                        icon: Icon(Icons.add, size: 18),
-                        label: Text('Record'),
-                        style: FilledButton.styleFrom(
-                          visualDensity: VisualDensity.compact,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                      ),
-                    ],
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 14),
                   if (viewModel.paymentHistory.isEmpty)
                     Center(
                       child: Padding(
-                        padding: EdgeInsets.symmetric(vertical: 40),
+                        padding: const EdgeInsets.symmetric(vertical: 40),
                         child: Column(
                           children: [
                             Icon(
@@ -193,7 +196,7 @@ class _PaymentViewState extends State<PaymentView> {
                               size: 48,
                               color: Colors.grey[400],
                             ),
-                            SizedBox(height: 12),
+                            const SizedBox(height: 12),
                             Text(
                               'No payment history',
                               style: TextStyle(color: Colors.grey[600]),
@@ -217,26 +220,31 @@ class _PaymentViewState extends State<PaymentView> {
   }
 
   Widget _buildPaymentHero(
-    BuildContext context,
-    PaymentViewModel viewModel,
-    double progress,
-  ) {
-    final colorScheme = Theme.of(context).colorScheme;
+    BuildContext context, {
+    required double progress,
+    required double paid,
+    required double total,
+    required double remaining,
+    required double fabricCredit,
+  }) {
+    final paidPercent =
+        '${(progress.clamp(0.0, 1.0) * 100).toStringAsFixed(0)}%';
 
-    return DecoratedBox(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 260),
       decoration: BoxDecoration(
-        color: colorScheme.secondary,
-        borderRadius: BorderRadius.circular(20),
+        color: const Color(0xFF17324D),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: colorScheme.secondary.withValues(alpha: 0.16),
-            blurRadius: 22,
-            offset: Offset(0, 10),
+            color: const Color(0xFF17324D).withValues(alpha: 0.18),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
       child: Padding(
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -245,38 +253,190 @@ class _PaymentViewState extends State<PaymentView> {
                 Expanded(
                   child: Text(
                     'Payment overview',
-                    style: TextStyle(
-                      color: colorScheme.onSecondary,
+                    style: const TextStyle(
+                      color: Colors.white,
                       fontSize: 22,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
                 ),
-                Icon(Icons.receipt_long, color: colorScheme.onSecondary),
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD2B34C).withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(
+                      color: const Color(0xFFD2B34C).withValues(alpha: 0.32),
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.receipt_long,
+                    color: Color(0xFFD2B34C),
+                  ),
+                ),
               ],
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
               'Track total orders, paid amount, remaining balance, and every recorded payment.',
               style: TextStyle(
-                color: colorScheme.onSecondary.withValues(alpha: 0.8),
+                color: Colors.white.withValues(alpha: 0.78),
                 height: 1.4,
               ),
             ),
-            SizedBox(height: 18),
-            Text(
-              'Rs. ${viewModel.payment!.remainingAmount.toStringAsFixed(0)}',
-              style: TextStyle(
-                color: colorScheme.onSecondary,
-                fontSize: 30,
-                fontWeight: FontWeight.w900,
-              ),
+            const SizedBox(height: 20),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(
+                  child: Text(
+                    'Rs. ${remaining.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 32,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.14),
+                    ),
+                  ),
+                  child: Text(
+                    '$paidPercent paid',
+                    style: const TextStyle(
+                      color: Color(0xFFD2B34C),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
             ),
             Text(
               'remaining balance',
               style: TextStyle(
-                color: colorScheme.onSecondary.withValues(alpha: 0.76),
+                color: Colors.white.withValues(alpha: 0.72),
                 fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 18),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(999),
+              child: LinearProgressIndicator(
+                minHeight: 10,
+                value: progress.clamp(0.0, 1.0),
+                backgroundColor: Colors.white.withValues(alpha: 0.14),
+                valueColor: const AlwaysStoppedAnimation(Color(0xFFD2B34C)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                _heroAmountChip(
+                  label: 'Paid',
+                  value: 'Rs. ${paid.toStringAsFixed(0)}',
+                  icon: Icons.check_circle_outline,
+                ),
+                const SizedBox(width: 10),
+                _heroAmountChip(
+                  label: 'Total',
+                  value: 'Rs. ${total.toStringAsFixed(0)}',
+                  icon: Icons.account_balance_wallet_outlined,
+                ),
+              ],
+            ),
+            if (fabricCredit > 0) ...[
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD2B34C).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(
+                    color: const Color(0xFFD2B34C).withValues(alpha: 0.20),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.inventory_2_outlined,
+                      color: Color(0xFFD2B34C),
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Customer fabric credit applied: Rs. ${fabricCredit.toStringAsFixed(0)}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _heroAmountChip({
+    required String label,
+    required String value,
+    required IconData icon,
+  }) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: Colors.white, size: 18),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    value,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.66),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -292,24 +452,32 @@ class _PaymentViewState extends State<PaymentView> {
     IconData icon,
   ) {
     return Container(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: color.withValues(alpha: 0.22), width: 1),
         boxShadow: [
           BoxShadow(
             color: color.withValues(alpha: 0.08),
             blurRadius: 16,
-            offset: Offset(0, 7),
+            offset: const Offset(0, 7),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: color, size: 24),
-          SizedBox(height: 12),
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(13),
+            ),
+            child: Icon(icon, color: color, size: 22),
+          ),
+          const SizedBox(height: 12),
           Text(
             label,
             style: TextStyle(
@@ -318,12 +486,12 @@ class _PaymentViewState extends State<PaymentView> {
               color: Colors.grey[600],
             ),
           ),
-          SizedBox(height: 6),
+          const SizedBox(height: 6),
           Text(
             amount,
             style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
+              fontSize: 17,
+              fontWeight: FontWeight.w900,
               color: color,
             ),
           ),
@@ -335,110 +503,179 @@ class _PaymentViewState extends State<PaymentView> {
   void _showRecordPaymentDialog(
     BuildContext context,
     PaymentViewModel viewModel,
+    double effectiveTotal,
   ) {
     final amountController = TextEditingController();
     final messenger = ScaffoldMessenger.of(context);
     String selectedMethod = 'Cash';
 
-    showDialog(
+    showModalBottomSheet<void>(
       context: context,
-      builder: (dialogContext) {
+      isScrollControlled: true,
+      showDragHandle: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
         return StatefulBuilder(
           builder: (context, setState) {
-            return AlertDialog(
-              title: Text('Record Payment'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Amount',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    TextField(
-                      controller: amountController,
-                      keyboardType: TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: 'Enter amount',
-                        prefixText: 'Rs. ',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 16),
-                    Text(
-                      'Payment Method',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    DropdownButton<String>(
-                      isExpanded: true,
-                      value: selectedMethod,
-                      items: ['Cash', 'Online', 'Card', 'Check']
-                          .map(
-                            (method) => DropdownMenuItem(
-                              value: method,
-                              child: Text(method),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        setState(() => selectedMethod = value ?? 'Cash');
-                      },
-                    ),
-                  ],
-                ),
+            final colorScheme = Theme.of(context).colorScheme;
+            final methods = ['Cash', 'Online', 'Card', 'Check'];
+
+            return SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                20,
+                0,
+                20,
+                MediaQuery.viewInsetsOf(context).bottom +
+                    MediaQuery.paddingOf(context).bottom +
+                    20,
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    final amount = double.tryParse(amountController.text) ?? 0;
-                    if (amount > 0) {
-                      final navigator = Navigator.of(dialogContext);
-                      final success = await viewModel.recordPayment(
-                        'user1',
-                        amount,
-                        selectedMethod,
-                      );
-                      if (success && mounted) {
-                        navigator.pop();
-                        messenger.showSnackBar(
-                          SnackBar(
-                            content: Text('Payment recorded successfully'),
-                            backgroundColor: Colors.green,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Record Payment',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Add a new transaction to the customer account.',
+                    style: TextStyle(color: colorScheme.onSurfaceVariant),
+                  ),
+                  const SizedBox(height: 18),
+                  TextField(
+                    controller: amountController,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: const InputDecoration(
+                      labelText: 'Amount',
+                      hintText: 'Enter amount',
+                      prefixText: 'Rs. ',
+                      prefixIcon: Icon(Icons.payments_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Payment Method',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: methods.map((method) {
+                      final selected = selectedMethod == method;
+                      return ChoiceChip(
+                        label: Text(method),
+                        selected: selected,
+                        avatar: Icon(
+                          _methodIcon(method),
+                          size: 17,
+                          color: selected
+                              ? colorScheme.onPrimary
+                              : colorScheme.primary,
+                        ),
+                        selectedColor: colorScheme.primary,
+                        labelStyle: TextStyle(
+                          color: selected
+                              ? colorScheme.onPrimary
+                              : colorScheme.onSurface,
+                          fontWeight: FontWeight.w800,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(999),
+                          side: BorderSide(
+                            color: selected
+                                ? Colors.transparent
+                                : colorScheme.outlineVariant,
                           ),
-                        );
-                      }
-                    }
-                  },
-                  child: Text('Record'),
-                ),
-              ],
+                        ),
+                        onSelected: (_) {
+                          setState(() => selectedMethod = method);
+                        },
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 22),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Cancel'),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: () async {
+                            final amount =
+                                double.tryParse(amountController.text) ?? 0;
+                            if (amount <= 0) {
+                              messenger.showSnackBar(
+                                const SnackBar(
+                                  content: Text('Enter a valid amount'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return;
+                            }
+
+                            final navigator = Navigator.of(sheetContext);
+                            final success = await viewModel.recordPayment(
+                              'user1',
+                              amount,
+                              selectedMethod,
+                              totalOverride: effectiveTotal,
+                            );
+                            if (success && mounted) {
+                              navigator.pop();
+                              messenger.showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Payment recorded successfully',
+                                  ),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.check_circle_outline),
+                          label: const Text('Record'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             );
           },
         );
       },
     );
+  }
+
+  IconData _methodIcon(String method) {
+    switch (method.toLowerCase()) {
+      case 'cash':
+        return Icons.payments_outlined;
+      case 'online':
+        return Icons.wifi_tethering_outlined;
+      case 'card':
+        return Icons.credit_card;
+      case 'check':
+        return Icons.receipt_long_outlined;
+      default:
+        return Icons.account_balance_wallet_outlined;
+    }
   }
 }
